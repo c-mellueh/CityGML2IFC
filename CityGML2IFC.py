@@ -1,5 +1,5 @@
-import xml.etree.ElementTree as ET
-import xml.etree as etree
+import lxml.etree as ET
+
 import os
 import time
 import datetime

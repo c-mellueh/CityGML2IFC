@@ -329,7 +329,7 @@ class Ui_MainWindow(object):
         self.button_save_info.clicked.connect(self.save_info)
 
     def import_info(self):
-        file_path = QtWidgets.QFileDialog.getOpenFileName(caption= "InformationsDatei",filter = "Info Xml(*.xml)",selectedFilter="Info Xml (*.xml)")[0]
+        file_path = QtWidgets.QFileDialog.getOpenFileName(caption= "InformationsDatei",filter = "XML (*.xml);;All files (*.*)",selectedFilter="Info Xml (*.xml)")[0]
         self.data_dict = import_ifc_data(file_path,self.data_dict)
         self.set_project_data(self.data_dict)
 
@@ -342,7 +342,7 @@ class Ui_MainWindow(object):
         save_ifc_data(file_path,ifc_data)
 
     def get_file_name(self):
-        file_path = QtWidgets.QFileDialog.getOpenFileName(caption= "IFC Datei",filter = "IFC Datei (*.ifc)",selectedFilter="IFC Datei (*.ifc)")[0]
+        file_path = QtWidgets.QFileDialog.getOpenFileName(caption= "GML Datei",filter = "GML (*.gml)",selectedFilter="GML (*.gml)")[0]
         file_name,extensinsion = os.path.splitext(file_path)
         if file_name != "":
             self.line_import_path.setText(file_path)
