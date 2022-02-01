@@ -229,10 +229,6 @@ class Worker(QtCore.QThread):
         checkstate_referencepoint = ui.check_reference_point.isChecked()
         checkstate_address = ui.check_address.isChecked()
 
-        print(reference_point)
-        print(checkstate_referencepoint)
-        print(checkstate_address)
-
         generator = Transform_generator(path=path_import,
                     dst=path_save,
                     reference_point_db_ref=reference_point,
@@ -243,6 +239,10 @@ class Worker(QtCore.QThread):
 
         for building,total in generator:
             self.updateProgress.emit(int(building/total*100))
+
+        print("READY")
+        self.updateProgress.emit(100)
+
 
 if __name__ == "__main__":
     import sys
