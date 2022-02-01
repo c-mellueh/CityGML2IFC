@@ -7,42 +7,31 @@ import numpy
 import uuid
 from pyproj.crs import CRS
 from pyproj.transformer import Transformer
+import sys
 
 global FILE
 global ns_dict
 global counter
 
 
-def progressBar(iterable, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
+def printProgressBar(iteration, prefix, suffix, decimals, length, fill, printEnd, total):
     """
-    Call in a loop to create terminal progress bar
-    @params:
-        iterable    - Required  : iterable object (Iterable)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
-    total = len(iterable)
+       Call in a loop to create terminal progress bar
+       @params:
+           iterable    - Required  : iterable object (Iterable)
+           prefix      - Optional  : prefix string (Str)
+           suffix      - Optional  : suffix string (Str)
+           decimals    - Optional  : positive number of decimals in percent complete (Int)
+           length      - Optional  : character length of bar (Int)
+           fill        - Optional  : bar fill character (Str)
+           printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+       """
 
-    # Progress Bar Printing Function
-    def printProgressBar(iteration):
-        percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-        filledLength = int(length * iteration // total)
-        bar = fill * filledLength + '-' * (length - filledLength)
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
 
-        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end="")
-
-    # Initial Call
-    printProgressBar(0)
-    # Update Progress Bar
-    for i, item in enumerate(iterable):
-        yield item
-        printProgressBar(i + 1)
-    # Print New Line on Complete
-    # print()
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end="")
 
 
 def guid():
@@ -392,8 +381,9 @@ def Transform_generator(path, dst, epsg_in, epsg_out, reference_point_db_ref=Non
 
     FILE.write(text)
 
-    for building_int, building in enumerate(
-            progressBar(buildings, prefix='Progress:', suffix='Complete', length=50, decimals=2)):
+    for building_int, building in enumerate(buildings):
+        yield (building_int, len(buildings))
+
         ifcbuildingid = create_id()
         if import_address:
             building_name = add_address(building, ifcbuildingid)
@@ -626,15 +616,20 @@ def Transform_generator(path, dst, epsg_in, epsg_out, reference_point_db_ref=Non
 
 
 if __name__ == "__main__":
-    # path="complete_city_mpdel_with_pipes_reprojected.gml"
-    path = "StuKu_UR2_LoD2_Ludwigshafen.gml"
-    # path="new.gml"
-    # path="1.gml"
-    # path="complete_city_mpdel_with_pipes_reprojected.gml"
-    # path="small_pipe_reprojected.gml"
-    # path="new_ground_solid_removed.gml"
-    # path="Ground.gml"
-    dst = "Result_with_transform.ifc"
 
-    reference_point = (3454000,5486000,0)
-    CityGML2IFC(path, dst,reference_point)
+    print(sys.argv[0])
+    if len(sys.argv) == 1:
+        path = "StuKu_UR2_LoD2_Ludwigshafen.gml"
+        dst = "Result_with_transform.ifc"
+    else:
+        path = sys.argv[1]
+        dst = sys.argv[2]
+
+    print("{}->{}".format(path, dst))
+
+    reference_point = (3454000, 5486000, 0)
+    test = Transform_generator(path=path, dst=dst, reference_point_db_ref=reference_point, epsg_out=5683, epsg_in=25832)
+
+    for building, total in test:
+        printProgressBar(int(building), prefix="Progress: ", suffix="Complete", decimals=2, length=50, fill="█",
+                         printEnd="", total=total)
