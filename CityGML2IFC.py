@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import xml.etree as etree
 import os
 import time
 import datetime
@@ -253,7 +254,7 @@ def import_namespace(root):
     return ns_dict
 
 
-def write_header(FILE):
+def write_header(FILE,ifc_data):
     dmy = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(os.path.getmtime(FILE.name)))
     # dmys will print the current time in IFC compatible formay
     dmys = "'" + dmy + "'"
@@ -270,8 +271,8 @@ FILE_SCHEMA(('IFC2X3'));
 ENDSEC;
 
 DATA;
-#101 = IFCORGANIZATION ($, 'DB_Netz', 'DB_Netz Abteilung Karlsruhe', $, $); 
-#104 = IFCPERSON ($, 'Mellüh', 'Christoph', $, $, $, 'Werkstudent', '99510 Apolda');
+#101 = IFCORGANIZATION ($, '{org_name}', '{org_description}', $, $); 
+#104 = IFCPERSON ($, '{auth_fam_name}', '{auth_given_name}', $, $, $, $,$);
 #103 = IFCPERSONANDORGANIZATION (#104, #101, $);
 #105 = IFCAPPLICATION (#101, 'CityGML2IFC', 'CityGML2IFC', 'CityGML2IFC');
 #102 = IFCOWNERHISTORY (#103, #105, .READWRITE., .NOCHANGE., $, $, $,  {creation_date});
@@ -291,12 +292,17 @@ DATA;
 """
     text = text.format(filename=FILE.name,
                        dmys=dmys,
-                       creation_date=int(tdif.total_seconds()))
+                       creation_date=int(tdif.total_seconds()),
+                       org_name = ifc_data["org_name"],
+                       org_description = ifc_data["org_description"],
+                       auth_fam_name=ifc_data["auth_fam_name"],
+                       auth_given_name=ifc_data["auth_given_name"],
+                       )
     FILE.write(text)
 
 
-def Transform_generator(path, dst, epsg_in, epsg_out, reference_point_db_ref=None, import_address=True,
-                        move_reference=True):
+def Transform_generator(path, dst,ifc_data:dict, epsg_in, epsg_out, reference_point_db_ref=None, import_address=True,
+                        move_reference=True,):
     global FILE
     global ns_dict
     global counter
@@ -357,15 +363,15 @@ def Transform_generator(path, dst, epsg_in, epsg_out, reference_point_db_ref=Non
     ground_id_list = []
     roof_id_list = []
     floor_id_list = []
-    write_header(FILE)
+    write_header(FILE,ifc_data)
     text = """#120 = IFCCARTESIANPOINT (({x_pos}, {y_pos}, {z_pos}));
 #121 = IFCAXIS2PLACEMENT3D(#120,$,$);
 #122 = IFCLOCALPLACEMENT($,#121);
 #123 = IFCCARTESIANPOINT ((0, 0, 0));
 #124 = IFCAXIS2PLACEMENT3D(#123,$,$);
 #125 = IFCLOCALPLACEMENT(#122,#124);
-{ifcprojectid} = IFCPROJECT ({project_guid}, #102, 'Citygml Import', 'This is File was created by transforming a cityGML', $, $,'ENTWURF', (#107), #113);
-{ifcsiteid} = IFCSITE ({site_guid}, #102, 'Studernheim_TRANS', 'Beschreibung Studernheim', 'LandUse', #122, $, $, .ELEMENT.,{max_point},{reference_point}, $, $, $);
+{ifcprojectid} = IFCPROJECT ({project_guid}, #102, '{proj_name}', '{proj_description}', $, $,'{proj_long_name}', (#107), #113);
+{ifcsiteid} = IFCSITE ({site_guid}, #102, '{site_name}', '{site_description}', 'LandUse', #122, $, $, .ELEMENT.,{max_point},{reference_point}, $, $, $);
 #{id_1} = IFCRELAGGREGATES ( {guid_1},#102, $, $, {ifcprojectid}, ({ifcsiteid}));"""
     text = text.format(ifcprojectid=ifcprojectid,
                        ifcsiteid=ifcsiteid,
@@ -377,7 +383,13 @@ def Transform_generator(path, dst, epsg_in, epsg_out, reference_point_db_ref=Non
                        guid_1=guid(),
                        x_pos=reference_point_db_ref[0],
                        y_pos=reference_point_db_ref[1],
-                       z_pos=reference_point_db_ref[2])
+                       z_pos=reference_point_db_ref[2],
+                       proj_name=ifc_data["proj_name"],
+                       proj_description = ifc_data["proj_description"],
+                       proj_long_name = ifc_data["proj_long_name"],
+                       site_name = ifc_data["site_name"],
+                       site_description = ifc_data["site_description"],
+                       )
 
     FILE.write(text)
 
@@ -520,6 +532,7 @@ def Transform_generator(path, dst, epsg_in, epsg_out, reference_point_db_ref=Non
             )
             FILE.write(text)
 
+
     # Added material when needed by commenting the below back in
 
     # assign material #115 to all walls
@@ -614,8 +627,48 @@ def Transform_generator(path, dst, epsg_in, epsg_out, reference_point_db_ref=Non
     FILE.write(text)
     FILE.close()
 
+def save_ifc_data(path,ifc_data:dict):
+    xml_file = ET.Element('IFC_Data')
+
+    for tag,value in ifc_data.items():
+
+        sub_item = ET.SubElement(xml_file,tag)
+        sub_item.text = value
+    tree = ET.ElementTree(xml_file)
+
+    with open(path,"wb") as f:
+        tree.write(f,encoding = "utf-8",xml_declaration=True)
+        f.close()
+
+def import_ifc_data(path,ifc_dic):
+    tree = ET.parse(path)
+    root = tree.getroot()
+
+
+    for el in root:
+
+        ifc_dic[el.tag]=el.text
+
+    return ifc_dic
 
 if __name__ == "__main__":
+    data_dict = {
+        "org_name": "",
+        "org_description": "",
+        "auth_fam_name":  "",
+        "auth_given_name":""  ,
+        "proj_name":  "",
+        "proj_long_name":  "",
+        "proj_phase":  "",
+        "proj_description":  "",
+        "site_name":  "",
+        "site_description":  "",
+        "ref_x":  "",
+        "ref_y": "",
+        "ref_z": " ",
+        "epsg_in": " ",
+        "epsg_out": " ",
+    }
 
     print(sys.argv[0])
     if len(sys.argv) == 1:
@@ -625,10 +678,12 @@ if __name__ == "__main__":
         path = sys.argv[1]
         dst = sys.argv[2]
 
+    data_dict = import_ifc_data("testdata.xml")
+
     print("{}->{}".format(path, dst))
 
     reference_point = (3454000, 5486000, 0)
-    test = Transform_generator(path=path, dst=dst, reference_point_db_ref=reference_point, epsg_out=5683, epsg_in=25832)
+    test = Transform_generator(path=path, dst=dst,ifc_data=data_dict, reference_point_db_ref=reference_point, epsg_out=5683, epsg_in=25832)
 
     for building, total in test:
         printProgressBar(int(building), prefix="Progress: ", suffix="Complete", decimals=2, length=50, fill="█",
