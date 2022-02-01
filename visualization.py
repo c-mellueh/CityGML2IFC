@@ -342,7 +342,7 @@ class Ui_MainWindow(object):
         save_ifc_data(file_path,ifc_data)
 
     def get_file_name(self):
-        file_path = QtWidgets.QFileDialog.getOpenFileName()[0]
+        file_path = QtWidgets.QFileDialog.getOpenFileName(caption= "IFC Datei",filter = "IFC Datei (*.ifc)",selectedFilter="IFC Datei (*.ifc)")[0]
         file_name,extensinsion = os.path.splitext(file_path)
         if file_name != "":
             self.line_import_path.setText(file_path)
