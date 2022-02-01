@@ -95,13 +95,12 @@ def find_max_point(l):
     return (max_x, max_y, max_z)
 
 
-def move_to_local(reference_point, l):
+def move_to_local(reference_point, l, epsg_in, epsg_out):
     # will convert list of points into local coordinates by subtracting the local point value from them
     local_points_list = []
-    #tranformed_points = l
     tranformed_points = []
     for point in l:
-        tranformed_points.append(transform_coordinates_db(point))
+        tranformed_points.append(transform_coordinates_db(point, epsg_in=epsg_in, epsg_out=epsg_out))
 
     for point in tranformed_points:
         result = numpy.subtract(point, reference_point)
@@ -118,16 +117,16 @@ def get_global_coordinates(x1, y1, z):
     return (x2, y2, z)
 
 
-def transform_coordinates_db(point_list):
+def transform_coordinates_db(point_list, epsg_in, epsg_out):
     # convert coordinates from EPSG28992 TO WGS84
 
     x1 = point_list[0]
     y1 = point_list[1]
     z1 = point_list[2]
-    in_proj = CRS.from_epsg(25832)  # ETRS89_UTM32
-    out_proj = CRS.from_epsg(5683)  # DB_REF / 3-degree Gauss-Kruger zone 3
+    in_proj = CRS.from_epsg(epsg_in)  # ETRS89_UTM32
+    out_proj = CRS.from_epsg(epsg_out)  # DB_REF / 3-degree Gauss-Kruger zone 3
     transformer = Transformer.from_crs(in_proj, out_proj)
-    x2, y2, z2 = transformer.transform(x1, y1,z1)
+    x2, y2, z2 = transformer.transform(x1, y1, z1)
     return (x2, y2, z2)
 
 
@@ -264,8 +263,9 @@ def import_namespace(root):
 
     return ns_dict
 
+
 def write_header(FILE):
-    dmy = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(os.path.getmtime(path)))
+    dmy = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(os.path.getmtime(FILE.name)))
     # dmys will print the current time in IFC compatible formay
     dmys = "'" + dmy + "'"
 
@@ -302,13 +302,19 @@ DATA;
 """
     text = text.format(filename=FILE.name,
                        dmys=dmys,
-                       creation_date = int(tdif.total_seconds()))
+                       creation_date=int(tdif.total_seconds()))
     FILE.write(text)
 
-def CityGML2IFC(path, dst,reference_point_db_ref = None):
+
+def Transform_generator(path, dst, epsg_in, epsg_out, reference_point_db_ref=None, import_address=True,
+                        move_reference=True):
     global FILE
     global ns_dict
     global counter
+
+    if move_reference is False:
+        reference_point_db_ref = (0, 0, 0)
+
     tree = ET.parse(path)
     counter = itertools.count(10000)
     # counter is used to createa a hashtaged unique id with an incremintal value starting from the value given above
@@ -317,9 +323,6 @@ def CityGML2IFC(path, dst,reference_point_db_ref = None):
     # define name spaces
 
     ns_dict = import_namespace(root)
-
-
-
 
     cityObjects = []
     buildings = []
@@ -353,9 +356,7 @@ def CityGML2IFC(path, dst,reference_point_db_ref = None):
     reference_point_wgs84 = get_global_coordinates(reference_point[0], reference_point[1], reference_point[2])
 
     if reference_point_db_ref is None:
-        reference_point_db_ref = transform_coordinates_db(reference_point)
-
-
+        reference_point_db_ref = transform_coordinates_db(reference_point, epsg_in=epsg_in, epsg_out=epsg_out)
 
     max_point = find_max_point(points_list_complete)
     max_point_wgs84 = get_global_coordinates(max_point[0], max_point[1], max_point[2])
@@ -394,8 +395,10 @@ def CityGML2IFC(path, dst,reference_point_db_ref = None):
     for building_int, building in enumerate(
             progressBar(buildings, prefix='Progress:', suffix='Complete', length=50, decimals=2)):
         ifcbuildingid = create_id()
-        building_name = add_address(building, ifcbuildingid)
-
+        if import_address:
+            building_name = add_address(building, ifcbuildingid)
+        else:
+            building_name = "IfcBuilding"
 
         ifcsurfaceid_list = []
         BoundedBy = building.findall('.//{%s}boundedBy' % ns_dict["ns_bldg"])
@@ -411,7 +414,8 @@ def CityGML2IFC(path, dst,reference_point_db_ref = None):
                 # points list is the list of the bounding points eg. (5 points for rectangle) every three points have the value of x and y and z
                 points_list_chunks = chunks(points_list, 3)
                 # reference_point=find_reference_point(points_list_chunks)
-                bounding_points = move_to_local(reference_point_db_ref, points_list_chunks)
+                bounding_points = move_to_local(reference_point_db_ref, points_list_chunks, epsg_in=epsg_in,
+                                                epsg_out=epsg_out)
 
                 for b_points in bounding_points:
                     # iterate over every point in the boundary and create an elemetn from this point and store the id in ifc_id_list
@@ -509,12 +513,12 @@ def CityGML2IFC(path, dst,reference_point_db_ref = None):
                     roof_id_list.append(ifcsurfaceid)
 
         if (ifcsurfaceid_list):
-            text= "\n{id_0} = IFCBUILDING ({guid_0}, #102, '{building_name}', $, $, $, $, $, $, $, $, $);"
-            text+= "\n#{id_1} = IFCRELAGGREGATES ( {guid_1},#102, $, $, {site_id}, ({building_id}));"
+            text = "\n{id_0} = IFCBUILDING ({guid_0}, #102, '{building_name}', $, $, $, $, $, $, $, $, $);"
+            text += "\n#{id_1} = IFCRELAGGREGATES ( {guid_1},#102, $, $, {site_id}, ({building_id}));"
             text += "\n#{id_2} = IFCRELCONTAINEDINSPATIALSTRUCTURE ({guid_2}, #102, $, $, ({lstring}), {building_id});"
             text = text.format(
-                id_0 =ifcbuildingid,
-                guid_0 =guid(),
+                id_0=ifcbuildingid,
+                guid_0=guid(),
                 building_name=building_name,
                 id_1=next(counter),
                 id_2=next(counter),
@@ -559,7 +563,7 @@ def CityGML2IFC(path, dst,reference_point_db_ref = None):
             # points list is the list of the bounding points eg. (5 points for rectangle) every three points have the value of x and y and z
             points_list_chunks = chunks(points_list, 3)
             # reference_point=find_reference_point(points_list_chunks)
-            bounding_points = move_to_local(reference_point, points_list_chunks)
+            bounding_points = move_to_local(reference_point, points_list_chunks, epsg_in=epsg_in, epsg_out=epsg_out)
 
             while pl < len(bounding_points):
                 # iterate over every point in the boundary and create an elemetn from this point and store the id in ifc_id_list
