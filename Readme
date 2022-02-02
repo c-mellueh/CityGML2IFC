@@ -10,7 +10,7 @@ Kavisha’s GitHub  https://github.com/kkimmy.
 
 Used Moules 
 The following modules are imported and used in the program; these modules should be preinstalled before running the program: 
-xml.etree.ElementTree    _ Is used here for parsing the XML data 
+lxml  _ Is used here for parsing the XML data 
 os _    To interact with the operating system where the computer is running for example: reading time and file bath. 
 time_ To read the current time and stored in the created IFC files
 itertools _     Is used to create a hashtaged unique id with an incremental value starting from a given value
