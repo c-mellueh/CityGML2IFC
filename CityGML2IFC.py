@@ -167,7 +167,7 @@ def add_address(building, building_id):
                 tupl[1] = value.strip()
 
         id_list.append(tupl[0])
-        add_single_value(tupl[0], tag, value)
+        add_single_value(tupl[0], tag, tupl[1])
     add_pset(id_list, building_id, "Adresse")
 
     building_name = "{},{}".format(text_dict["ThoroughfareName"][1], text_dict["ThoroughfareNumber"][1])
