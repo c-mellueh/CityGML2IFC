@@ -466,7 +466,7 @@ def Transform_generator(path, dst,ifc_data:dict, epsg_in, epsg_out, reference_po
                 text = text.format(id=ifcproductdefiniteshapeid, sh_id=ifcshaperepresentationid)
                 FILE.write(text)
 
-                if (Boundary.find('{%s}GroundSurface' % ns_dict["ns_bldg"])):
+                if Boundary.find('{%s}GroundSurface' % ns_dict["ns_bldg"]) is not None:
                     ifcsurfaceid = create_id()
                     text = "\n{id} = IFCSLAB({guid}, $, 'GroundSlab', ' ',$,{pos_id}, {sh_id}, $, .BASESLAB.); "
                     text = text.format(id=ifcsurfaceid, guid=guid(), sh_id=ifcproductdefiniteshapeid, pos_id="#125")
@@ -474,7 +474,7 @@ def Transform_generator(path, dst,ifc_data:dict, epsg_in, epsg_out, reference_po
                     ifcsurfaceid_list.append(ifcsurfaceid)
                     ground_id_list.append(ifcsurfaceid)
 
-                if (Boundary.find('{%s}FloorSurface' % ns_dict["ns_bldg"])):
+                if Boundary.find('{%s}FloorSurface' % ns_dict["ns_bldg"]) is not None:
                     ifcsurfaceid = create_id()
                     text = "\n{id} = IFCSLAB({guid}, $, 'GroundSlab', ' ',$,{pos_id}, {sh_id}, $, .BASESLAB.); "
                     text = text.format(id=ifcsurfaceid, guid=guid(), sh_id=ifcproductdefiniteshapeid, pos_id="#125")
@@ -482,7 +482,7 @@ def Transform_generator(path, dst,ifc_data:dict, epsg_in, epsg_out, reference_po
                     ifcsurfaceid_list.append(ifcsurfaceid)
                     floor_id_list.append(ifcsurfaceid)
 
-                if (Boundary.find('{%s}RoofSurface' % ns_dict["ns_bldg"])):
+                if  Boundary.find('{%s}RoofSurface' % ns_dict["ns_bldg"])is not None:
                     ifcsurfaceid = create_id()
                     text = "\n{id} = IFCROOF({guid}, $, 'RoofSlab', ' ',$,{pos_id}, {sh_id}, $, .ROOF.); "
                     text = text.format(id=ifcsurfaceid, guid=guid(), sh_id=ifcproductdefiniteshapeid, pos_id="#125")
@@ -490,7 +490,7 @@ def Transform_generator(path, dst,ifc_data:dict, epsg_in, epsg_out, reference_po
                     ifcsurfaceid_list.append(ifcsurfaceid)
                     roof_id_list.append(ifcsurfaceid)
 
-                if (Boundary.find('{%s}WallSurface' % ns_dict["ns_bldg"])):
+                if Boundary.find('{%s}WallSurface' % ns_dict["ns_bldg"]) is not None:
                     ifcsurfaceid = create_id()
                     text = "\n{id} = IFCWALL({guid}, $, 'bldg:WallSurface', ' ',$,{pos_id}, {sh_id}, $); "
                     text = text.format(id=ifcsurfaceid, guid=guid(), sh_id=ifcproductdefiniteshapeid, pos_id="#125")
@@ -498,7 +498,7 @@ def Transform_generator(path, dst,ifc_data:dict, epsg_in, epsg_out, reference_po
                     ifcsurfaceid_list.append(ifcsurfaceid)
                     wall_id_list.append(ifcsurfaceid)
 
-                if (Boundary.find('{%s}InteriorWallSurface' % ns_dict["ns_bldg"])):
+                if Boundary.find('{%s}InteriorWallSurface' % ns_dict["ns_bldg"]) is not None:
                     ifcsurfaceid = create_id()
                     text = "\n{id} = IFCWALL({guid}, $, 'bldg:WallSurface', ' ',$,{pos_id}, {sh_id}, $); "
                     text = text.format(id=ifcsurfaceid, guid=guid(), sh_id=ifcproductdefiniteshapeid, pos_id="#125")
@@ -506,7 +506,7 @@ def Transform_generator(path, dst,ifc_data:dict, epsg_in, epsg_out, reference_po
                     ifcsurfaceid_list.append(ifcsurfaceid)
                     wall_id_list.append(ifcsurfaceid)
 
-                if (Boundary.find('{%s}CeilingSurface' % ns_dict["ns_bldg"])):
+                if Boundary.find('{%s}CeilingSurface' % ns_dict["ns_bldg"]) is not None:
                     ifcsurfaceid = create_id()
                     text = "\n{id} = IFCCOVERING ({guid}, $, 'CoveringSlab', ' ',$,{pos_id}, {sh_id}, $); "
                     text = text.format(id=ifcsurfaceid, guid=guid(), sh_id=ifcproductdefiniteshapeid, pos_id="#125")
