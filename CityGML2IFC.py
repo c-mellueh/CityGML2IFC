@@ -652,39 +652,41 @@ def import_ifc_data(path,ifc_dic):
     return ifc_dic
 
 if __name__ == "__main__":
+
+    path = "StuKu_UR2_LoD2_Ludwigshafen.gml"
+    dst = "Result_with_transform.ifc"
+
     data_dict = {
-        "org_name": "",
-        "org_description": "",
-        "auth_fam_name":  "",
-        "auth_given_name":""  ,
-        "proj_name":  "",
-        "proj_long_name":  "",
-        "proj_phase":  "",
-        "proj_description":  "",
-        "site_name":  "",
-        "site_description":  "",
-        "ref_x":  "",
-        "ref_y": "",
-        "ref_z": " ",
-        "epsg_in": " ",
-        "epsg_out": " ",
+        "org_name": "Org Name",
+        "org_description": "Org Description",
+        "auth_fam_name":  "Author Fam Name",
+        "auth_given_name":"Author Given Name"  ,
+        "proj_name":  "Proj Name",
+        "proj_long_name":  "Proj Long Name",
+        "proj_phase":  "Proj Phase",
+        "proj_description":  "Proj Desc",
+        "site_name":  "Site Name",
+        "site_description":  "Site Desc",
+        "ref_x":  "0",
+        "ref_y": "0",
+        "ref_z": "0",
+        "epsg_in": "25832",
+        "epsg_out": "5683",
     }
 
-    print(sys.argv[0])
-    if len(sys.argv) == 1:
-        path = "StuKu_UR2_LoD2_Ludwigshafen.gml"
-        dst = "Result_with_transform.ifc"
-    else:
+    #data_dict = import_ifc_data("info.xml", data_dict)
+
+    if len(sys.argv) > 1:
+
         path = sys.argv[1]
         dst = sys.argv[2]
-
-    data_dict = import_ifc_data("testdata.xml")
+        data_dict = import_ifc_data(sys.argv[3],data_dict)
 
     print("{}->{}".format(path, dst))
 
     reference_point = (3454000, 5486000, 0)
-    test = Transform_generator(path=path, dst=dst,ifc_data=data_dict, reference_point_db_ref=reference_point, epsg_out=5683, epsg_in=25832)
+    generator = Transform_generator(path=path, dst=dst,ifc_data=data_dict, reference_point_db_ref=reference_point, epsg_out=5683, epsg_in=25832)
 
-    for building, total in test:
+    for building, total in generator:
         printProgressBar(int(building), prefix="Progress: ", suffix="Complete", decimals=2, length=50, fill="█",
                          printEnd="", total=total)
