@@ -98,9 +98,9 @@ def move_to_local(reference_point, l, epsg_in, epsg_out):
     return local_points_list
 
 
-def get_global_coordinates(x1, y1, z):
+def get_global_coordinates(x1, y1, z,epsg_in):
     # convert coordinates from EPSG28992 TO WGS84
-    in_proj = CRS.from_epsg(25832)  # ETRS89_UTM32
+    in_proj = CRS.from_epsg(epsg_in)  # ETRS89_UTM32
     out_proj = CRS.from_epsg(4326)
     transformer = Transformer.from_crs(in_proj, out_proj)
     x2, y2 = transformer.transform(x1, y1)
@@ -301,11 +301,15 @@ DATA;
     FILE.write(text)
 
 
-def Transform_generator(path, dst,ifc_data:dict, epsg_in, epsg_out, reference_point_db_ref=None, import_address=True,
+def Transform_generator(path, dst,ifc_data:dict, reference_point_db_ref=(0,0,0), import_address=True,
                         move_reference=True,):
     global FILE
     global ns_dict
     global counter
+
+    epsg_in = int(ifc_data["epsg_in"])
+    epsg_out = int(ifc_data["epsg_out"])
+
 
     if move_reference is False:
         reference_point_db_ref = (0, 0, 0)
@@ -348,13 +352,13 @@ def Transform_generator(path, dst,ifc_data:dict, epsg_in, epsg_out, reference_po
         points_list_complete.append(x)
 
     reference_point = find_reference_point(points_list_complete)
-    reference_point_wgs84 = get_global_coordinates(reference_point[0], reference_point[1], reference_point[2])
+    reference_point_wgs84 = get_global_coordinates(reference_point[0], reference_point[1], reference_point[2],epsg_in)
 
     if reference_point_db_ref is None:
         reference_point_db_ref = transform_coordinates_db(reference_point, epsg_in=epsg_in, epsg_out=epsg_out)
 
     max_point = find_max_point(points_list_complete)
-    max_point_wgs84 = get_global_coordinates(max_point[0], max_point[1], max_point[2])
+    max_point_wgs84 = get_global_coordinates(max_point[0], max_point[1], max_point[2],epsg_in)
     # ---------------------------------------------------------------------------------------------------------------------
     ifcprojectid = create_id()
     ifcsiteid = create_id()
@@ -685,7 +689,7 @@ if __name__ == "__main__":
     print("{}->{}".format(path, dst))
 
     reference_point = (3454000, 5486000, 0)
-    generator = Transform_generator(path=path, dst=dst,ifc_data=data_dict, reference_point_db_ref=reference_point, epsg_out=5683, epsg_in=25832)
+    generator = Transform_generator(path=path, dst=dst,ifc_data=data_dict, reference_point_db_ref=reference_point)
 
     for building, total in generator:
         printProgressBar(int(building), prefix="Progress: ", suffix="Complete", decimals=2, length=50, fill="█",

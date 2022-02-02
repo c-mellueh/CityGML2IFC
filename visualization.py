@@ -429,8 +429,7 @@ class Worker(QtCore.QThread):
                     reference_point_db_ref=reference_point,
                     import_address=checkstate_address,
                     move_reference=checkstate_referencepoint,
-                    epsg_in=epsg_input,
-                    epsg_out=epsg_ouptut,ifc_data=self.ui.data_dict)
+                    ifc_data=self.ui.data_dict)
 
         for building,total in generator:
             self.updateProgress.emit(int(building/total*100))
