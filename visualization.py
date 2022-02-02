@@ -329,13 +329,13 @@ class Ui_MainWindow(object):
         self.button_save_info.clicked.connect(self.save_info)
 
     def import_info(self):
-        file_path = QtWidgets.QFileDialog.getOpenFileName(caption= "InformationsDatei",filter = "XML (*.xml);;All files (*.*)",selectedFilter="Info Xml (*.xml)")[0]
+        file_path = QtWidgets.QFileDialog.getOpenFileName(caption= "InformationsDatei",filter = "Info Xml (*.xml);;All files (*.*)",selectedFilter="Info Xml (*.xml)")[0]
         self.data_dict = import_ifc_data(file_path,self.data_dict)
         self.set_project_data(self.data_dict)
 
     def save_info(self):
         ifc_data = self.get_project_data()
-        file_path = QtWidgets.QFileDialog.getSaveFileName(caption="InformationsDatei", filter="Info Xml(*.xml)",
+        file_path = QtWidgets.QFileDialog.getSaveFileName(caption="InformationsDatei", filter="Info Xml (*.xml)",
                                                           selectedFilter="Info Xml (*.xml)")[0]
         if not file_path.endswith(".xml") and file_path != "":
             file_path += ".xml"
