@@ -1,0 +1,8 @@
+**/dist
+**/build
+*.gml
+*.ifc
+*.spec
+*.iml
+*.xml
+!info.xml
