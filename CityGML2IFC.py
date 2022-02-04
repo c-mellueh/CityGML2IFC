@@ -85,12 +85,12 @@ def find_max_point(l):
     return (max_x, max_y, max_z)
 
 
-def move_to_local(reference_point, l, epsg_in, epsg_out):
+def move_to_local(reference_point, l, in_proj, out_proj):
     # will convert list of points into local coordinates by subtracting the local point value from them
     local_points_list = []
     tranformed_points = []
     for point in l:
-        tranformed_points.append(transform_coordinates_db(point, epsg_in=epsg_in, epsg_out=epsg_out))
+        tranformed_points.append(transform_coordinates_db(point, in_proj = in_proj, out_proj=out_proj))
 
     for point in tranformed_points:
         result = numpy.subtract(point, reference_point)
@@ -107,14 +107,13 @@ def get_global_coordinates(x1, y1, z,epsg_in):
     return (x2, y2, z)
 
 
-def transform_coordinates_db(point_list, epsg_in, epsg_out):
+def transform_coordinates_db(point_list, in_proj, out_proj):
     # convert coordinates from EPSG28992 TO WGS84
 
     x1 = point_list[0]
     y1 = point_list[1]
     z1 = point_list[2]
-    in_proj = CRS.from_epsg(epsg_in)  # ETRS89_UTM32
-    out_proj = CRS.from_epsg(epsg_out)  # DB_REF / 3-degree Gauss-Kruger zone 3
+    
     transformer = Transformer.from_crs(in_proj, out_proj)
     x2, y2, z2 = transformer.transform(x1, y1, z1)
     return (x2, y2, z2)
@@ -310,6 +309,8 @@ def Transform_generator(path, dst,ifc_data:dict, reference_point_db_ref=(0,0,0),
     epsg_in = int(ifc_data["epsg_in"])
     epsg_out = int(ifc_data["epsg_out"])
 
+    in_proj = CRS.from_epsg(epsg_in)  # ETRS89_UTM32
+    out_proj = CRS.from_epsg(epsg_out)  # DB_REF / 3-degree Gauss-Kruger zone 3
 
     if move_reference is False:
         reference_point_db_ref = (0, 0, 0)
@@ -355,7 +356,7 @@ def Transform_generator(path, dst,ifc_data:dict, reference_point_db_ref=(0,0,0),
     reference_point_wgs84 = get_global_coordinates(reference_point[0], reference_point[1], reference_point[2],epsg_in)
 
     if reference_point_db_ref is None:
-        reference_point_db_ref = transform_coordinates_db(reference_point, epsg_in=epsg_in, epsg_out=epsg_out)
+        reference_point_db_ref = transform_coordinates_db(reference_point, in_proj=in_proj, out_proj=out_proj)
 
     max_point = find_max_point(points_list_complete)
     max_point_wgs84 = get_global_coordinates(max_point[0], max_point[1], max_point[2],epsg_in)
@@ -420,8 +421,8 @@ def Transform_generator(path, dst,ifc_data:dict, reference_point_db_ref=(0,0,0),
                 # points list is the list of the bounding points eg. (5 points for rectangle) every three points have the value of x and y and z
                 points_list_chunks = chunks(points_list, 3)
                 # reference_point=find_reference_point(points_list_chunks)
-                bounding_points = move_to_local(reference_point_db_ref, points_list_chunks, epsg_in=epsg_in,
-                                                epsg_out=epsg_out)
+                bounding_points = move_to_local(reference_point_db_ref, points_list_chunks, in_proj = in_proj,
+                                                out_proj=out_proj)
 
                 for b_points in bounding_points:
                     # iterate over every point in the boundary and create an elemetn from this point and store the id in ifc_id_list
@@ -559,74 +560,6 @@ def Transform_generator(path, dst,ifc_data:dict, reference_point_db_ref=(0,0,0),
     text = text.format(id=next(counter), guid=guid(), lstring=",".join(ground_id_list))
     FILE.write(text)
 
-    # pipes work
-    for pipe in generic:
-        pl = 0
-        pos = pipe.findall('.//{%s}posList' % ns_dict["ns_gml"])
-        for polygon in pos:
-            ifc_id_list = []
-            pl = 0
-            points_list = [float(val) for val in (polygon.text).strip().split(' ')]
-            # points list is the list of the bounding points eg. (5 points for rectangle) every three points have the value of x and y and z
-            points_list_chunks = chunks(points_list, 3)
-            # reference_point=find_reference_point(points_list_chunks)
-            bounding_points = move_to_local(reference_point, points_list_chunks, epsg_in=epsg_in, epsg_out=epsg_out)
-
-            while pl < len(bounding_points):
-                # iterate over every point in the boundary and create an elemetn from this point and store the id in ifc_id_list
-                ifc_id = "#" + str(next(counter))
-                text = "{id} = IFCCARTESIANPOINT (({points}));"
-                text = text.format(id=ifc_id, points=str(bounding_points[pl]).strip("[]"))
-                FILE.write(text)
-                ifc_id_list.append(ifc_id)
-                pl = pl + 1
-            ifcpolyloopid = "#" + str(next(counter))
-
-            # note; end= is used to identify what tp print after printstatment have ended
-            loop_string = ""
-            for Element_id in ifc_id_list:
-                loop_string += (str((Element_id)).strip("''"))
-                loop_string += (",")
-                loop_string2 = loop_string[:-1]
-
-            text = "\n{id} = IFCPOLYLOOP (({lstring}));"
-            text = text.format(id=ifcpolyloopid, lstring=loop_string2)
-            FILE.write(text)
-            ifcfaceouterboundid = "#" + str(next(counter))
-
-            text = "\n{id} = IFCFACEOUTERBOUND ({pl_id}, .T.);"
-            text = text.format(id=ifcfaceouterboundid, pl_id=ifcpolyloopid)
-            FILE.write(text)
-
-            ifcfaceid = "#" + str(next(counter))
-            text = "\n{id} = IFCFACE (({fo_id}));"
-            text = text.format(id=ifcfaceid, pl_id=ifcfaceouterboundid)
-            FILE.write(text)
-
-            ifcopenshellid = "#" + str(next(counter))
-            text = "\n{id} = IFCOPENSHELL (({f_id}));"
-            text = text.format(id=ifcopenshellid, pl_id=ifcfaceid)
-            FILE.write(text)
-
-            ifcshellbasedsurfacemodelid = "#" + str(next(counter))
-            text = "\n{id} = IFCSHELLBASEDSURFACEMODEL (({os_id}));"
-            text = text.format(id=ifcshellbasedsurfacemodelid, os_id=ifcopenshellid)
-            FILE.write(text)
-
-            ifcshaperepresentationid = "#" + str(next(counter))
-            text = "\n{id} = IFCSHAPEREPRESENTATION ($,'Body','SurfaceModel',({id_2}));"
-            text = text.format(id=ifcshaperepresentationid, id_2=ifcshellbasedsurfacemodelid)
-            FILE.write(text)
-
-            ifcproductdefiniteshapeid = "#" + str(next(counter))
-            text = "\n{id} = IFCPRODUCTDEFINITIONSHAPE ($, $, ({id_2}));"
-            text = text.format(id=ifcproductdefiniteshapeid, id_2=ifcshaperepresentationid)
-            FILE.write(text)
-
-            text = "\n#{id} = IFCBUILDINGELEMENTPROXY( {guid},#102,'Test extrude',$,$,#119,{id_2},$,$);"
-            text = text.format(id=next(counter), guid=guid(), id_2=ifcproductdefiniteshapeid)
-            FILE.write(text)
-
     text = "\n\nENDSEC;\nEND-ISO-10303-21;\n"
     FILE.write(text)
     FILE.close()
@@ -694,3 +627,6 @@ if __name__ == "__main__":
     for building, total in generator:
         printProgressBar(int(building), prefix="Progress: ", suffix="Complete", decimals=2, length=50, fill="█",
                          printEnd="", total=total)
+
+    printProgressBar(int(100), prefix="Progress: ", suffix="Complete", decimals=2, length=50, fill="█",
+                     printEnd="", total=100)
